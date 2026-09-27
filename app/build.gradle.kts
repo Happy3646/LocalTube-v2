@@ -25,38 +25,46 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
-    }
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
+      val keystorePath = System.getenv("KEYSTORE_PATH")
+      if (!keystorePath.isNullOrBlank()) {
+        storeFile = file(keystorePath)
+        storePassword = System.getenv("STORE_PASSWORD")
+        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
+        keyPassword = System.getenv("KEY_PASSWORD")
+      }
     }
   }
 
   buildTypes {
+    debug {
+      // Use AGP's default debug keystore generation instead of a fixed file path.
+      // This avoids failing in CI when debug.keystore does not exist.
+    }
+
     release {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+
+      val keystorePath = System.getenv("KEYSTORE_PATH")
+      if (!keystorePath.isNullOrBlank()) {
+        signingConfig = signingConfigs.getByName("release")
+      }
     }
-    debug { signingConfig = signingConfigs.getByName("debugConfig") }
   }
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
   }
+
   buildFeatures {
     compose = true
     buildConfig = true
   }
+
   testOptions { unitTests { isIncludeAndroidResources = true } }
+
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
